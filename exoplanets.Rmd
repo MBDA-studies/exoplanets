@@ -1,0 +1,427 @@
+---
+title: "Exoplanets to-date"
+subtitle: "an analysis of the exoplanets data collected from the NASA Exoplanet Archive"
+author: "by Mauro Benjamin Mistretta"
+output: html_document
+date: "2023-08-03"
+---
+
+## Abstract - Scope of the project
+In this simple analysis, I make my first steps into using R, with the aid of SQL and Excel.
+Having a background in Astronomy, I collected the most updated data concerning exoplanets from the NASA Exoplanet Archive, exploring interesting characteristics of planets that are orbiting other stars, which were detected since the year 1992 by various observatories (land and space facilities).
+This analysis can capture the interest of students around the world who are fascinated by astronomy and the search for exoplanets.
+The dataset holds a lot of information, such as:
+
+•	Planet’s name<br>
+•	Host Name (the host star)<br>
+•	Number of Stars (in the system)<br>
+•	Number of Planets (in the system)<br>
+•	Discovery Method (such as radial velocity, transits, imaging, etc.)<br>
+•	Discovery Year<br>
+•	Discovery Facility<br>
+•	.<br>
+•	.<br>
+•	.<br>
+•	Many other physical properties of the planet.<br>
+
+I addressed the attention to confirmed discoveries only.
+In this study I will give answer to the following questions:
+
+•	How many planets per year have been discovered?<br>
+•	Same question but divided by land and space facilities.<br>
+•	At what average distance in pc have the exoplanets been discovered?<br>
+•	What are the hosting stellar surface temperatures? Which are the stellar effective temperatures in the majority of planetary discovery?<br>
+•	How is the hosting stars&rsquo; metallicity distributed along the distance radius in parsecs?<br>
+•	What are the planets’ radii, compared to that of the Earth, and how are they distributed between land-based and spacecraft observations?<br><br>
+
+
+## Setting up my environment
+Notes: setting up my R environment by loading the 'tidyverse', 'dplyr', 'ggplot2'and 'plotly'.
+
+```{r loading packages}
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(plotly)
+library(rmarkdown)
+```
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE)
+```
+
+## Preparing the data
+The dataset is free to download from the NASA Exoplanet Archive that can be found in the following link: <https://exoplanetarchive.ipac.caltech.edu/>, and it is organized in a CSV file.
+The data’s integrity is guaranteed by NASA.<br>
+The first action taken was to load the CSV file in Excel, so to quickly examine the details. Since I wanted to differentiate between land-based observations and detections from space, I have created a column labelled *facility_type* and placed the value of 1 for spacecraft observations. Saved the file, I have loaded it in RStudio and gave another good glance of the dataset to start working with it.<br>
+The first step for data processing was to eliminate those planets who are not confirmed yet. In other words, eliminating those rows under column *controv_flag* (controversy flag) that hold the value of 1, meaning that there is still discussion about the discovery of such planets.
+In DBeaver (a SQL environment), I quickly checked all the relevant datatypes, making sure that they were suitable for my analyses. Then, in RStudio, I have eliminated those rows in column *st_teff* (stellar temperature) that contained no data.
+
+## Data processing
+I used R for this analysis, because of its versatility and the amazing ability to produce instant graphs that are very easy to interpret. Furthermore, the R MarkDown feature renders the job of exporting your own work easy and straightforward.
+In RStudio, I first created a plot of the number of planets discovered vs. discovery year. Then, another plot with bars showing how the discoveries are distributed between land-base and space missions.<br>
+Within each facility type, I have produced a pie chart, showing what detection method was mostly used (and effective).
+Then, I calculated the average star system (host of exoplanets) distance and converted it into light years and km.
+<br>
+Then, after purging out the missing data, I grouped the effective temperatures of the stars rounded to 1 significant figure and created a plot showing how many planets have been discovered for each group of stellar temperatures, hence showing the star class of these parent stars.
+For the analysis on the star metallicity, I then eliminated the rows with empty data in the *st_met column*. I did not do it beforehand, because there are several rows with empty data in that column, and deleting so many rows would have affected the previous analyses.<br>
+After that, I have created a scatter plot showing the distribution of star metallicity along a distance scale in parsecs.
+Finally, I have created a box plot showing the distribution of planets radii vs. facility type, with the aim of showing the size of exoplanets detected by land-based and space facilities.
+
+
+## Analysis
+### 1. How many exoplanets have been discovered per year, since the first discovery made in 1992?
+After loading the *exoplanetsdata.csv* file into RStudio, I have filtered out all the rows containing unconfirmed discoveries, and called the new dataset *filtered_exoplanets*.
+
+```{r Importing the dataset}
+exoplanets <- read.csv("~/DATA SCIENCE/DATASETS/exoplanetsdata.csv")
+```
+
+```{r Create a new dataset called *filtered_exoplanets*, where all discoveries are confirmed}
+filtered_exoplanets <- exoplanets[exoplanets$pl_controv_flag == 0, ]
+```
+
+Then, in order to count the number of planets discovered per year (column *disc_year*), whilst the dataset only contains the planets&rsquo; names (*pl_name* column) I have used the *aggregate* function:
+
+```{r Aggregate data by disc_year and count the number of planets discovered per year}
+planet_counts <- aggregate(pl_name ~ disc_year, data = exoplanets, FUN = length)
+colnames(planet_counts) <- c("disc_year", "planet_count")
+```
+
+And plotted the result:
+
+```{r Create a bar chart}
+ggplot(planet_counts, aes(x = disc_year, y = planet_count)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(title = "Number of Planets Discovered per Year",
+       x = "Discovery Year",
+       y = "Number of Planets") +
+  scale_x_continuous(breaks = seq(min(planet_counts$disc_year), max(planet_counts$disc_year), 5)) +
+  theme_minimal()
+```
+
+As we can see from the graph, there is a striking peak of discoveries made in 2016. This peak can be attributed to several factors:<br><br>
+•	**Advancements in Technology**: The year 2016 saw significant advancements in exoplanet detection technology, particularly with the use of space-based telescopes like Kepler and ground-based telescopes. These improved instruments allowed astronomers to detect and confirm more exoplanets than ever before.<br><br>
+•	**Kepler Space Telescope**: The Kepler Space Telescope, launched by NASA in 2009, played a crucial role in the discovery of exoplanets. It used the transit method to detect exoplanets by measuring the slight dimming of a star&rsquo;s light as a planet passes in front of it. By 2016, Kepler had been in operation for several years and had collected a vast amount of data, leading to a surge in exoplanet discoveries.<br><br>
+•	**Data Analysis Techniques**: Over time, astronomers developed more sophisticated data analysis techniques to identify and confirm exoplanets from the vast amount of data collected by telescopes like Kepler. These techniques became more refined by 2016, leading to an increased rate of exoplanet discoveries.<br><br>
+•	**Increased Observing Time**: As time went on, telescopes like Kepler had more observing time, allowing them to monitor more stars and planetary systems. The increased observation time led to the detection of more exoplanets.<br><br>
+•	**International Collaboration**: The field of exoplanet research saw increased international collaboration among astronomers and research institutions. This collaborative effort helped to identify and confirm exoplanets more efficiently.<br><br>
+•	**Public Interest and Funding**: Exoplanet discoveries captured the public&rsquo;s imagination and garnered significant media attention. The enthusiasm for exoplanet research led to increased funding and support for projects focused on exoplanet detection and exploration.<br><br>
+
+**How many discoveries per facility type?**<br>
+To answer this question, I simply created a bar chart showing how many discoveries, since the year 1992, have been made by each type of observatory (land-based and spacecraft):
+
+```{r Calculate the counts of planets for each facility type}
+planet_counts <- filtered_exoplanets %>%
+  group_by(facility_type) %>%
+  summarise(number_of_planets = n())
+```
+
+```{r Create the bar chart with number of planets on the y-axis and facility type on the x-axis}
+bar_chart <- ggplot(planet_counts, aes(x = as.factor(facility_type), y = number_of_planets)) +
+  geom_bar(stat = "identity", fill = c("darkgreen", "grey")) +
+  labs(title = "Number of planets detected per facility type",
+       x = "Facility Type",
+       y = "Number of Planets") +
+  scale_x_discrete(labels = c("Land-Based", "Spacecraft")) +  # Rename x-axis labels
+  theme_minimal()
+
+# Show the bar chart
+print(bar_chart)
+```
+<<br>
+We can surely say that, till now, the majority of exoplanets have been discovered by observatories on Earth, and the reason being is that the most advanced space missions are still collecting data. With extreme certainty, the number of detections from space will soon exceed those made from Earth, for obvious reasons.<br><br>
+
+### 2. Methods of detection for both land-based and spacecraft observatories:<br>
+It is interesting to analyse which methods of detections where the most successful for each facility type. In such respect, I have produced the following pie charts:<br><br>
+* Data from land-based observations:
+```{r Filter data for land-based observations}
+land_based_observations <- filtered_exoplanets %>%
+  filter(is.na(facility_type))
+```
+<br><br>
+* Data from space missions:<br>
+```{r Filter data for spacecraft observations}
+spacecraft_observations <- filtered_exoplanets %>%
+  filter(facility_type == 1)
+```
+<br>
+And here are the plots:<br>
+```{r plot lan-based}
+discovery_method_counts <- land_based_observations %>%
+  group_by(discoverymethod) %>%
+  summarize(count = n()) %>%
+  arrange(desc(count))
+
+pie_chart_3d_land_based <- plot_ly(discovery_method_counts, labels = ~discoverymethod, values = ~count, type = "pie") %>%
+  layout(title = list(text = "Discovery methods within land-based observations", font = list(size = 20, color = "black", face = "bold")),
+         legend = list(orientation = "v", x = 1.1, y = 0.5),
+         margin = list(l = 50, r = 100, b = 0, t = 50))  # Adjust the right margin to make space for the legend
+
+# Display the 3D pie chart
+pie_chart_3d_land_based
+```
+<br>
+```{r plot spacecraft}
+discovery_method_counts_spacecraft <- spacecraft_observations %>%
+  group_by(discoverymethod) %>%
+  summarize(count = n()) %>%
+  arrange(desc(count))
+
+pie_chart_3d_spacecraft <- plot_ly(discovery_method_counts_spacecraft, labels = ~discoverymethod, values = ~count, type = "pie") %>%
+  layout(title = list(text = "Discovery methods within spacecraft observations", font = list(size = 20, color = "black", face = "bold")),
+         legend = list(orientation = "v", x = 1.1, y = 0.5),
+         margin = list(l = 50, r = 100, b = 0, t = 300))  # Increase the left margin to move the plot to the right
+
+# Display the 3D pie chart
+pie_chart_3d_spacecraft
+```
+<br>
+As we can see, the majority of land-based discoveries have been conducted through the radial velocity method. The reason lies in the fact that the radial velocity method is well-suited for ground-based telescopes, and it allows precise measurements of a star&rsquo;s wobble caused by the gravitational pull of an orbiting planet.<br>
+
+On the other hand, the majority of discoveries made by space missions were through the transit method, which is particularly sensitive to detecting exoplanets that pass in front of their host stars, causing detectable dips in brightness. Space missions provide stable and continuous observations, making transit observations more practical from space.<br><br>
+
+### 3. Average distance of discovered exoplanets<br>
+In reality, despite the impressive number of discoveries, compared to a galactic scale, we have only detected planets that lie in our close neighborhood. To give an idea of the scales involved, let us consider that the diameter of our galaxy (the Milky Way) is approx. 32,500 parsecs, or 32.5 kpc. As we will see, the average distance of detected planets orbiting other stars is floating around 1,000 pc, a mere 3% of the total diameter of our galaxy.<br>
+Of course it is! Stars are so bright that outshine planets around them. Therefore, detection of exoplanets is far from being an easy task. Having said that, the discovery of more than 5,000 exoplanets in our neighborhood encourages the idea that our galaxy, populated by a majority of stars that are not so different from our Sun, thrives with planets of all sorts.<br>
+Let R calculate the average distance of the detected exoplanets:<br>
+
+```{r Calculate the average distance from the column *sy_dist*}
+average_distance <- mean(exoplanets$sy_dist, na.rm = TRUE)
+cat("Average distance:", round(average_distance, 2), "pc\n")
+```
+<br>
+Let us convert this value in light years and km, bearing in mind that a parsec (pc) is equal to 3.26 light years, and a light year is equal to (the *astronomical* figure of) 9.46 × 10<sup>12</sup> km:<br>
+
+```{r average distance in ly and km}
+average_distance_ly = average_distance*3.26
+cat("Average distance:", round(average_distance_ly, 2), "ly\n")
+
+avg_distance_km = average_distance_ly*9.46e12
+average_distance_km <- signif(avg_distance_km, digits = 2)
+cat("Average distance:", round(average_distance_km, 2), "km\n")
+```
+<br>
+Just note that the last bit is a 2.2 followed by 15 zeroes in km: 22,000,000,000,000,000 km<br>
+or, **22 quadrillion km**.<br><br>
+
+### 4. Which star temperatures (or star classes) host the majority of detected exoplanets?<br>
+This is an interesting question, because it gives us an idea of where to point our telescopes for finding exoplanets. In other words, which type of star to choose that can be a reasonable candidate for a planetary system.<br>
+In order to extract the information, I first had to clean the dataset, because there were several rows with no information about the star temperature. Allowing empty rows to be included would have contaminated the analysis with spurious counts that the system would not have been able to allocate. Therefore, here&rsquo;s the purging and the creation of a new dataset called *filtered2_exoplanets*:<br>
+
+```{r}
+filtered2_exoplanets <- filtered_exoplanets %>%
+  filter(st_spectype != "" & !is.na(st_spectype),
+         st_teff != "" & !is.na(st_teff))
+```
+<br>
+Having done that, because the dataset contains lots of different temperatures with a high degree of precision, I had to group the temperatures to 1 significant figure. For example, star temperatures of 5,130K , 5,350K and 5024K would be grouped in the 5,000 K figure subset. Analogously, a temperature of 5780K would be grouped in the 6000K-figure subset:<br>
+
+```{r}
+filtered2_exoplanets <- filtered2_exoplanets %>%
+  mutate(st_teff_approx = round(st_teff, -3))
+```
+<br>
+We are now ready to build the planet counts, based on the star temperatures sub-groups:<br>
+```{r}
+planet_counts <- filtered2_exoplanets %>%
+  group_by(st_teff_approx) %>%
+  summarise(number_of_planets = n())
+```
+<br>
+Following the concept of a [HR-diagram](https://en.wikipedia.org/wiki/Hertzsprung%E2%80%93Russell_diagram), where the x-axis is reversed (higher temperatures on the left-hand side, lower temperatures on the right-hand side), I have assigned appropriate colors to the various stellar temperatures, and built the relevant bar chart:<br><br>
+
+```{r}
+temperature_groups <- cut(planet_counts$st_teff_approx, breaks = c(0, 3000, 4000, 5000, 7000, 20000, max(planet_counts$st_teff_approx)))
+custom_colors <- c("red", "brown", "orange", "yellow", "cyan", "blue")
+
+bar_chart <- ggplot(planet_counts, aes(x = factor(st_teff_approx), y = number_of_planets, fill = temperature_groups)) +
+  geom_col() +
+  scale_fill_manual(
+    values = setNames(custom_colors, levels(temperature_groups)),
+  ) +
+  labs(
+    title = "Number of planets by stars grouped by effective temperatures",
+    x = "Star Effective Temperature (in Kelvin)",
+    y = "Number of Planets"
+  ) +
+  scale_y_continuous(breaks = seq(0, max(planet_counts$number_of_planets), by = 50)) +  # Adjust the y-axis labels
+  scale_x_discrete(limits = rev(levels(factor(planet_counts$st_teff_approx)))) +  # Reverse the x-axis
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none")  # Remove the legend
+
+print(bar_chart)
+```
+<br><br>
+This graph tells us something strikingly important: the majority of planets discovered lies in the 5000K-6000K temperature range. And guess what? Our Sun&rsquo;s effective temperature is approx. 5,800K ! This fact proves (albeit, as already mentioned, we have only probed our immediate neighborhood) that, in our galaxy (and presumably in all galaxies), most of the sun-like stars have a high probability to host a planetary system. That is a good hint for where to point our telescopes!<br><br>
+
+### 5. Distribution of planets radii per facility type<br>
+Planets come in various sizes and densities. There are earth-like rocky planets, gas giants and so forth.<br>
+It is interesting to analyse what planet sizes have been mostly discovered by each facility type (Earth or space), and we shall see a confirmation of the graphs that showed the methods of detection:<br><br>
+```{r}
+# Create the box plot showing the distribution of planet radii per facility type
+box_plot <- ggplot(data = filtered2_exoplanets, aes(x = as.factor(facility_type), y = pl_rade, fill = as.factor(facility_type))) +
+  geom_boxplot(outlier.shape = NA) +  # Omit outliers for better visualization
+  geom_jitter(width = 0.2, alpha = 0.3) +  # Add jittered points for individual data points
+  labs(title = "Distribution of planet radii by facility type",
+       x = "Facility Type",
+       y = "Planet Radii (Earth Radii)") +
+  scale_x_discrete(labels = c("Land-Based", "Spacecraft")) +  # Rename x-axis labels
+  scale_fill_manual(values = c("darkgreen", "grey"), guide = FALSE) +  # Set custom colors and remove the legend
+  theme_minimal()
+
+# Show the box plot
+print(box_plot)
+```
+<br><br>
+As we can see from the graph above, there is a high density distribution of earths and super-earths detected by land-based observatories, and a dense distribution of giants made by facilities in space.<br>
+This fact is not surprising, because the transit method, mostly used in space, works much better when the planet&rsquo;s size is large enough to produce a significant dip in the hosting star&rsquo;s luminosity, during a transit. On the other hand, the radial velocity method, which detects the wobble of the star as the planet orbits around the common center of gravity, is more accurate for the detection of smaller planets, like earth-like, rocky planets.<br><br>
+
+### 6. Exoplanets density distribution<br>
+
+The columns in the dataset related to planet&rsquo;s radius (*pl_rade*) and the planet&rsquo;s mass (*pl_bmasse*) are very well populated. However, a few rows contained no data. This led me to the decision of deleting those rows without data, because it would affect the calculations:<br> density = mass / volume.<br>
+Furthermore, either the radii and the masses are expressed in Earth&rsquo;s radius and mass. Therefore, I transformed each value into the  SI system (m and kg) in order to yield a comprehensible density data.<br>
+
+Preparing the dataset:<br>
+```{r}
+radiusmassexoplanet <- exoplanets %>%
+  filter(!is.na(pl_rade) & !is.na(pl_bmasse))
+
+earth_radius_m <- 6371000.0 # Earth's radius in m
+earth_mass_kg <- 5.972e24 # Earth's mass in kg
+
+radiusmassexoplanet <- radiusmassexoplanet %>%
+  mutate(pl_radsi = pl_rade * earth_radius_m,
+         pl_massi = pl_bmasse * earth_mass_kg)
+
+
+# Calculate the new column pl_density
+radiusmassexoplanet <- radiusmassexoplanet %>%
+  mutate(pl_density = pl_massi / (pl_radsi^3 *(4/3)* pi))
+```
+<br>
+
+Then, I instructed R to produce the following plot:<br><br>
+
+```{r}
+# Calculate the new column pl_density
+radiusmassexoplanet <- radiusmassexoplanet %>%
+  mutate(pl_density = pl_massi / (pl_radsi^3 *(4/3)* pi))
+
+# Create groups for densities by rounding to the nearest thousand
+radiusmassexoplanet$Density_Group <- round(radiusmassexoplanet$pl_density, -3)
+
+# Create a custom color palette for the bars
+num_groups <- length(unique(radiusmassexoplanet$Density_Group))
+color_palette <- rainbow(num_groups)
+
+# Create the colored bar chart
+ggplot(radiusmassexoplanet, aes(x = factor(Density_Group), fill = factor(Density_Group))) +
+  geom_bar() +
+  scale_fill_manual(values = color_palette) +
+  labs(x = expression("Density (kg/m"^3*")"), y = "Count",
+       title = "Detected exoplanets' densities",
+       fill = expression("Density groups" ~ (kg/m^3))) +
+  theme_minimal() +
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        legend.key.width = unit(0.2, "cm"),  # Adjust the width of the legend key
+        legend.key.height = unit(0.1, "cm"), # Adjust the height of the legend key
+        plot.margin = unit(c(2, 0.5, 2, 3), "lines"))  # Increase the dimensions of the plot
+```
+<br><br>
+There is an obvious preponderance of low density exoplanets discovered. That is hardly surprising, since low density planets are generally gas giants, much easier to detect because they cause a large dip in the light curves during a transit, or make the star wobble more consistently (they have a low density but an impressive overall mass).<br>
+Let us point out something here:<br><br>
+- the density of rocks range between 2,600 and 3,000 kg m<sup>-3</sup><br>
+- the density of gases lies well below the 2000 kg m<sup>-3</sup> figure.<br><br>
+
+Exoplanets with densities over 10,000 kg per cubic meter are considered to be unusually dense, compared to typical planets in our solar system, which have densities ranging from around 1,000 kg per cubic meter for gas giants to around 5,500 kg per cubic meter for rocky planets like Earth.<br>
+
+The high densities of some exoplanets can be attributed to several factors:<br><br>
+
+1. **Massive Cores**: Exoplanets with extremely high densities often have massive and compact cores made of heavy elements. These cores can be composed of materials such as iron, nickel, and other dense metals, resulting in a higher overall density for the planet.:<br>
+
+2. **High Pressure and Temperature**: Some exoplanets are located very close to their host stars, in what is known as the "hot Jupiter" region. The intense heat and pressure in such environments can compress the planetary material, increasing its density.:<br>
+
+3. **Tidally Locked Planets**: Some exoplanets are tidally locked, meaning one side always faces their host star while the other side remains in permanent darkness. This extreme temperature difference between the two sides can cause unique atmospheric and geological conditions that might lead to higher density.:<br>
+
+4. **Formation and Evolution**: The formation and evolution of exoplanets can influence their density. Certain types of planet formation processes, such as accretion of heavy materials or collisions with other celestial bodies, could result in higher density compositions.:<br>
+
+5. **Composition and Elemental Abundances**: The composition of an exoplanet, including the abundance of heavy elements, can significantly impact its density. Planets with a higher concentration of heavy elements in their composition will generally have higher densities.:<br>
+
+6. **Extreme Gravitational Forces**: Exoplanets in close orbits around very massive stars or in densely packed planetary systems can experience strong gravitational forces, which may contribute to higher densities.:<br><br>
+
+It is important to remember that our understanding of exoplanets is still evolving, and the study of exoplanetary systems is an active area of research. The discovery of exoplanets with extremely high densities challenges our current models of planetary formation and evolution and provides exciting opportunities for further exploration and investigation.<br><br>
+
+#### 7. Metallicty of the stars vs. exoplanets detection distances<br>
+The star metallicity (often denoted as [Fe/H]) is a measure of the abundance of elements heavier than hydrogen and helium in a star&rsquo;s atmosphere. It is usually expressed as the logarithm of the ratio of the number of iron (Fe) atoms to the number of hydrogen (H) atoms relative to the same ratio in the Sun.The metallicity of the stars is an indicator of the age of such stars: older stars (**Population II**) have a poor, or even null metallicity, because they were made of the initial constituents of the universe: mainly hydrogen and helium. Younger stars (**Population I**), formed from the relics of older giant stars at the end of their life, injecting through their explosions (like supernovae) large quantities of processed and heavier-than-hydrogen-and-helium elements, that astronomers simply call *metals*. <br>
+The metallicity value can be positive, negative, or zero, and it provides important information about the composition and history of a star. Here is what the different metallicity values generally mean:<br><br>
+
+1.	Positive Metallicity: A positive metallicity value ([Fe/H] > 0) indicates that the star has a higher abundance of heavy elements (e.g., iron) compared to the Sun. Such stars are often referred to as "metal-rich" or "metal-enhanced" stars.<br>
+
+2.	Negative Metallicity: A negative metallicity value ([Fe/H] < 0) indicates that the star has a lower abundance of heavy elements compared to the Sun. These stars are often referred to as "metal-poor" stars.<br>
+
+3.	Zero Metallicity: A metallicity value of zero ([Fe/H] = 0) implies that the star has the same abundance of heavy elements as the Sun. Such stars are considered "solar metallicity" stars.<br><br>
+
+The metallicity of a star is influenced by several factors, including the star&rsquo;s age, mass, and its history of star formation and nucleosynthesis. Metallicity is a crucial parameter in stellar astrophysics and is used to understand the evolution and characteristics of stars, star systems, and galaxies.
+It is important to note that metallicity values can vary across different stars and are usually expressed as a logarithmic scale relative to the Sun&rsquo;s metallicity, where [Fe/H] = 0 corresponds to the solar abundance. For example, a star with [Fe/H] = -0.5 has about one-tenth the iron abundance of the Sun, while a star with [Fe/H] = +0.3 has approximately twice the iron abundance of the Sun.<br>
+To clarify further, the formula to calculate [Fe/H] is:<br>
+
+[Fe/H] = log(N(Fe) / N(H)) - log(N(Fe)_Sun / N(H)_Sun)<br>
+
+where:<br><br>
+- N(Fe) is the number of iron atoms in the star&rsquo;s atmosphere.<br>
+- N(H) is the number of hydrogen atoms in the star&rsquo;s atmosphere.<br>
+- N(Fe)_Sun is the number of iron atoms in the Sun&rsquo;s atmosphere.<br>
+- N(H)_Sun is the number of hydrogen atoms in the Sun&rsquo;s atmosphere.<br><br>
+
+By taking the logarithm of the ratio of iron to hydrogen atom abundances in the star relative to the Sun, we get the metallicity value [Fe/H], which indicates whether the star is more or is less metal-rich compared to the Sun.
+For example, if [Fe/H] = +0.3, it means that the star has approximately twice the iron abundance (Fe/H ratio) relative to the Sun. Similarly, if [Fe/H] = -0.5, it means the star has about one-tenth the iron abundance compared to the Sun. And if [Fe/H] = 0, it means the star has the same iron abundance as the Sun (solar metallicity).<br>
+With the above background, let us see how the stars metallicity is distributed along the distance in parsecs of stars that have been confirmed hosting a planetary system:<br><br>
+```{r}
+# Create the scatter plot
+scatter_plot <- ggplot(filtered_exoplanets, aes(x = sy_dist, y = st_met)) +
+  geom_point(size = 1, aes(color = sy_dist)) +
+  scale_color_gradient(low = "blue", high = "red", name = "Star Distance (parsecs)", limits = c(0,5000)) +
+  labs(title = "Distribution of metallicity per star distance",
+       x = "Star Distance (Parsecs)",
+       y = "Metallicity (log(Fe/H)") +
+  scale_x_continuous(limits = c(0, 5000)) +  # Set the x-axis limits from 0 to 6000 parsecs
+  theme_minimal()+
+  guides(color = guide_colorbar(title.position = "top", title.vjust = 5))  # Adjust the position and spacing of the legend title
+
+# Show the scatter plot
+print(scatter_plot)
+```
+<br><br>
+The graph above confirms the preponderance of sun-like stars, within the detection of planetary systems: the bulk of the observations lies around the value of zero-metallicity, i.e. *solar metallicity*.
+Systems closer to us also present a large number of high and poor metallicity, a number that decreases in both sides, as we look further away.
+In other words, in our immediate neighborhood, there has been a larger variety of detections in terms of host stars metallicity, meaning stars of a large range of population (i.e. age).
+The further away we looked, the more our detection of planetary systems, albeit fewer, involved sun-like stars.<br>
+This fact is related to the distribution of stars populations within the galaxy: Population II stars are generally older stars that formed from primordial, metal-poor interstellar gas, containing a lower fraction of
+heavier elements. They are composed of older, metal-poor gas that has not been enriched by previous generations of stars. Their metallicity is closer to that of the original composition of the universe.
+Plus, Population II stars are found in the galactic halo and bulge, as well as in globular clusters. They are not concentrated in the disk of spiral galaxies like Population I stars. In fact, the search
+of exoplanets hardly involved targets aiming towards the galactic center: in the bulge there is way too much density of stars, hence a tremendous amount of brightness, and star formation occurs mainly
+within the ionised hydrogen regions in the galactic arms of a spiral galaxy, dense with rich interstellar gas and dust. The galactic center, in fact, is stormed by tremendous cosmic rays and so much stellar wind, that makes stellar
+formation harder (if not impossible) to occur. If we momentarily venture into the field of astrobiology, looking for *exolife* (life outside our solar system), we would certainly not probe towards the center of our
+galaxy, for said reasons.
+As a note, it is safe to say that giant main sequence stars pose a much more difficult task for exoplanet detection, due to their tremendous brightness.
+Conversely, dwarf main sequence stars are very faint. 
+Hence, the search of planets beyond the 1000-parsec distance require better and more sensitive telescopes, such as the recently launched [James Webb Space Telescope](https://webb.nasa.gov/) (JWST), specialized in infra-red (IR) detection.<br><br>
+
+
+
+## Conclusions<br>
+Since the year 1992, there has been a tremendous amount of exoplanet discoveries, made by both Earth-based observatories and spacecraft. The number of exoplanets with confirmed discoveries is more than 5,400, and counting.<br>
+The reason why land-based observatories still hold the record of the detection counts, lies in the fact that more sophisticated and technologically advanced spacecraft have just started their operations, and we will soon witness a tremendous increase of detections made from space.<br>
+The most relevant detection methods, to date, are the transit method (especially from space) and the radial velocity method (land-based specialty).The average distance of these detected exoplanets floats around the 700-parsec figure, literally in our neighborhood. And it is quite possible that more sophisticated methods like microlensing and imaging will allow us to discover exoplanets further away.<br>
+An analysis of the stellar temperatures confirmed the hypothesis that the majority of exoplanets orbit stars that are much alike our Sun. This fact, along with the knowledge that *dwarf stars* like our own constitutes the bulk of the star population in our galaxy, corroborates the idea that our galaxy should be thriving with planetary systems. Also the study of the size of these exoplanets confirms the detection method vs. size of discovered planets, because the transit method works well with gas giants (detected by spacecraft mainly), whilst the radial velocity method offers a more precise analysis for earth-like and super earth planets.<br>
+In fact, the "Distribution of planet radii by facility type" graph confirms that land-based observatories were more successful in finding earth-like planets (with the radial velocity method) and the spacecraft missions thrived with gas giants detected with the transit method. Indeed, in the "Detected exoplanets&rsquo; densities" graph, the majority of detections concerned gas giants (with the transit method), rather than rocky planets.<br>
+A study of the metallicity of the hosting stars confirms this hypothesis too, since the majority of stars hosting exoplanets present a *solar metallicity*.<br>
+To wrap everything up, we have just made the first steps in exoplanet discoveries. We have probed a very tiny portion of space around us, but we already have a good idea of what is going on out there, as regards planetary systems. It is quite obvious, at least statistically, that most of the stars in our galaxy (which are classified as dwarfs) host systems with at least one planet, and planetary formation is almost a necessary consequence of stellar formation.<br>
+The search continues, and we will soon witness a dramatic increase of detections, thanks to state-of-the-art instruments like the James Webb. Once we will gather more data about these planets, we will be able (and the process is going on as I write) to determine also the physical properties of these planets: if they have atmospheres (for rocky planets) and if yes, what is the composition of their atmospheres (analyzing the spectra of the star light transiting through the gaseous envelope of the planet).<br>There is much to do, and the search is fascinating and exciting.<br>
+Thanks for your kind attention.<br><br>
