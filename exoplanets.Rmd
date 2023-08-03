@@ -77,7 +77,7 @@ Finally, I have created a box plot showing the distribution of planets radii vs.
 After loading the *exoplanetsdata.csv* file into RStudio, I have filtered out all the rows containing unconfirmed discoveries, and called the new dataset *filtered_exoplanets*.
 
 ```{r Importing the dataset}
-exoplanets <- read.csv("~/DATA SCIENCE/DATASETS/exoplanetsdata.csv")
+exoplanets <- read.csv("https://github.com/MBDA-studies/exoplanets/blob/main/exoplanetsdata.csv")
 ```
 
 ```{r Create a new dataset called *filtered_exoplanets*, where all discoveries are confirmed}
